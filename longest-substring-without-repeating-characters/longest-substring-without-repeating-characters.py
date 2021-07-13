@@ -5,8 +5,8 @@ class Solution:
         for s_ in s:
             if s_ not in fifo:
                 fifo.append(s_)
-                if len(fifo) > max_dist:
-                    max_dist = len(fifo)
+                q_l = len(fifo)
+                max_dist = len(fifo) if q_l > max_dist else max_dist
             else:
                 while(1):
                     out = fifo.pop(0)
