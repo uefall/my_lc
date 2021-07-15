@@ -1,0 +1,66 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+
+  flake8-py3:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+          architecture: x64
+      - name: Fetch PyTorch
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 2 # to allow us to use github.event.pull_request.head.sha
+      - name: Prepare output dir with HEAD commit SHA
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mkdir flake8-output
+          cd flake8-output
+          echo "$HEAD_SHA" > commit-sha.txt
+      - name: Install dependencies
+        run: |
+          set -eux
+          pip install typing-extensions # for tools/linter/translate_annotations.py
+          pip install -r requirements-flake8.txt
+          flake8 --version
+      - name: Run flake8
+        run: |
+          set -eux
+          flake8 | tee "${GITHUB_WORKSPACE}"/flake8-output.txt
+      - name: Translate annotations
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          tools/linter/translate_annotations.py \
+            --file="${GITHUB_WORKSPACE}"/flake8-output.txt \
+            --regex='^(?P<filename>.*?):(?P<lineNumber>\d+):(?P<columnNumber>\d+): (?P<errorCode>\w+\d+) (?P<errorDesc>.*)' \
+            --commit="$HEAD_SHA" \
+            > flake8-output/annotations.json
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: flake8-py3
+          path: flake8-output/
+      - name: Fail if there were any warnings
+        run: |
+          set -eu
+          # Re-output flake8 status so GitHub logs show it on the step that actually failed
+          cat "${GITHUB_WORKSPACE}"/flake8-output.txt
+          if [ -s "${GITHUB_WORKSPACE}"/flake8-output.txt ]; then
+            echo 'Please fix the above Flake8 warnings.'
+            false
+          fi
+concurrency:
+  group: lint-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
