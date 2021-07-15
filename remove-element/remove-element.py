@@ -4,6 +4,6 @@ class Solution:
         for num in nums:
             if num != val:
                 nums[valid_pos] = num
-                valid_pos+=1
-        nums[valid_pos:]='_'
+                valid_pos += 1
+        nums[valid_pos:] = '_'
         return valid_pos
