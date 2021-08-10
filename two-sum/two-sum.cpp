@@ -6,7 +6,6 @@ public:
         vector<int>::iterator it1 = nums.begin();
         vector<int>::iterator it2 = nums.end();
         for(int cnt=0; it1 != it2; ++it1){
-            cout << *it1;
             map<int,int>::iterator check_it = check_set.begin();
             check_it = check_set.find(target-*it1);
             if (check_it != check_set.end()){
